@@ -22,10 +22,10 @@ Dependencies:
 
 import markdown
 import warnings
+from markdown.util import get_class
 try:
     from pygments import highlight
     from pygments.lexers import get_lexer_by_name, guess_lexer, TextLexer
-    from pygments.formatters import HtmlFormatter
     pygments = True
 except ImportError:
     pygments = False
@@ -58,7 +58,8 @@ class CodeHilite:
 
     def __init__(self, src=None, linenums=None, guess_lang=True,
                 css_class="codehilite", lang=None, style='default',
-                noclasses=False, tab_length=4):
+                noclasses=False, tab_length=4,
+                formatter='pygments.formatters.HtmlFormatter'):
         self.src = src
         self.lang = lang
         self.linenums = linenums
@@ -67,6 +68,7 @@ class CodeHilite:
         self.style = style
         self.noclasses = noclasses
         self.tab_length = tab_length
+        self.formatter = formatter
 
     def hilite(self):
         """
@@ -95,10 +97,10 @@ class CodeHilite:
                         lexer = TextLexer()
                 except ValueError:
                     lexer = TextLexer()
-            formatter = HtmlFormatter(linenos=self.linenums,
-                                      cssclass=self.css_class,
-                                      style=self.style,
-                                      noclasses=self.noclasses)
+            formatter = self.formatter(linenos=self.linenums,
+                                       cssclass=self.css_class,
+                                       style=self.style,
+                                       noclasses=self.noclasses)
             return highlight(self.src, lexer, formatter)
         else:
             # just escape and build markup usable by JS highlighting libs
@@ -182,7 +184,8 @@ class HiliteTreeprocessor(markdown.treeprocessors.Treeprocessor):
                             css_class=self.config['css_class'],
                             style=self.config['pygments_style'],
                             noclasses=self.config['noclasses'],
-                            tab_length=self.markdown.tab_length)
+                            tab_length=self.markdown.tab_length,
+                            formatter=get_class(self.config['formatter']))
                 placeholder = self.markdown.htmlStash.store(code.hilite(),
                                                             safe=True)
                 # Clear codeblock in etree instance
@@ -205,8 +208,10 @@ class CodeHiliteExtension(markdown.Extension):
             'css_class' : ["codehilite",
                            "Set class name for wrapper <div> - Default: codehilite"],
             'pygments_style' : ['default', 'Pygments HTML Formatter Style (Colorscheme) - Default: default'],
-            'noclasses': [False, 'Use inline styles instead of CSS classes - Default false']
-            }
+            'noclasses': [False, 'Use inline styles instead of CSS classes - Default false'],
+            'formatter': ['pygments.formatters.HtmlFormatter',
+                          'Custom Pygments HTML Formatter class - Default: pygments.formatters.HtmlFormatter.']
+        }
 
         # Override defaults with user settings
         for key, value in configs:

@@ -110,3 +110,15 @@ class HtmlStash:
     def get_placeholder(self, key):
         return "%swzxhzdk:%d%s" % (STX, key, ETX)
 
+
+def get_class(class_string):
+    """
+    Given a string representing a path to a class,
+    returns the class itself.
+    """
+    parts = class_string.split('.')
+    module = ".".join(parts[:-1])
+    m = __import__(module)
+    for comp in parts[1:]:
+        m = getattr(m, comp)
+    return m
